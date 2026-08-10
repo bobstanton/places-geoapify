@@ -1,0 +1,26 @@
+# Places - Geoapify
+
+Map provider for [Places](https://community.obsidian.md/plugins/places) using [Geoapify](https://www.geoapify.com/), with vector maps, POI search, elevation replacement, directions, isochrones, and track snapping.
+
+## Network requests
+
+| Area                 | Request                                                      |
+| -------------------- | ------------------------------------------------------------ |
+| Map tiles and styles | Loads the selected map style, its glyphs, sprites, and tiles |
+| POI search           | Resolves a search term to place suggestions and coordinates  |
+| Directions           | Builds a route between the waypoints in a block              |
+| Isochrones           | Builds reachability polygons around a center point           |
+| Elevation            | Reads elevation along a track                                |
+| Track snapping       | Aligns a recorded track to the road or path network          |
+
+## Background tasks
+
+None.
+
+## Dependencies
+
+| Library                                                                    | Purpose                                        |
+| -------------------------------------------------------------------------- | ---------------------------------------------- |
+| [maplibre-gl](https://github.com/maplibre/maplibre-gl-js)                  | GL map engine                                  |
+| [places-shared](https://github.com/bobstanton/places-shared)               | Shared map, overlay, routing, and utility code |
+| [places-maplibre-base](https://github.com/bobstanton/places-maplibre-base) | Shared GL map implementation                   |
