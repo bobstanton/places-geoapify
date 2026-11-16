@@ -3,7 +3,8 @@ import { IPlaceExtensionSettings } from "places-shared/settings";
 import { ISnapService, SnapRequest, SnapResult, toMatchedGeometry, executeRateLimited, formatProviderApiError, formatProviderResponseShapeError, mapTravelMode, toSnappedPoint, describeUnsupportedSnapOptions, shouldSendTimestamps } from "places-shared/services";
 import { geoapifyRateLimits } from "./GeoapifyRateLimits";
 
-export const GEOAPIFY_MODES = { walk: "walk", bike: "bicycle", drive: "drive" } as const;
+import { GEOAPIFY_MODES } from 'places-geoapify/core';
+export { GEOAPIFY_MODES };
 
 interface GeoapifyMatchedWaypoint {
   location?: number[];
@@ -26,9 +27,11 @@ export class GeoapifySnapService implements ISnapService {
 
   async snapPoints(request: SnapRequest): Promise<SnapResult> {
     const maxPointCount = this.getMaxPointCount();
+
     if (request.points.length > maxPointCount) {
       throw new Error(`Geoapify map matching accepts at most ${maxPointCount} points; this track has ${request.points.length}. Simplify or split the track before snapping.`);
     }
+
     const sendTimes = shouldSendTimestamps(request);
     // The Map Matching API has no per-point radius parameter; request.radiusMeters is ignored.
     const response = await executeRateLimited(geoapifyRateLimits, "snap", () => requestUrl({
@@ -59,6 +62,7 @@ export class GeoapifySnapService implements ISnapService {
     const collection = response.json as { features?: Array<{ geometry?: { coordinates?: unknown }; properties?: { waypoints?: GeoapifyMatchedWaypoint[] } }> };
     const feature = collection.features?.[0];
     const waypoints = feature?.properties?.waypoints;
+
     if (!Array.isArray(waypoints) || waypoints.length !== request.points.length) {
       throw new Error(formatProviderResponseShapeError({
         provider: "Geoapify",

@@ -1,7 +1,7 @@
 {
 	"id": "places-geoapify",
 	"name": "Places - Geoapify",
-	"version": "0.0.1",
+	"version": "0.0.2",
 	"minAppVersion": "1.13.0",
 	"description": "Map provider for Places using Geoapify, with vector maps, POI search, elevation replacement, directions, isochrones, and track snapping.",
 	"author": "Bob Stanton",

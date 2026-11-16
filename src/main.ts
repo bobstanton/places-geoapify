@@ -1,9 +1,9 @@
 import { App, Plugin } from "obsidian";
 import { IPlaceExtensionSettings, IPlacesExtensionHostSettings } from "places-shared/settings";
-import { IPlacePluginExtension, IPlacePluginExtensionExports, registerPlaceExtensionLifecycle, settingsOnlyExports, PLACES_EXTENSION_API_VERSION, type ExtensionSettingsGroup } from "places-shared/services";
-import { Utilities , configureRequestLogging } from "places-shared/utils";
-import { apiKeySettingItem, countrySettingItem, styleDropdownItem } from "places-shared/ui";
-import { buildImageAlignment } from "places-maplibre-base";
+import { IPlacePluginExtension, IPlacePluginExtensionExports, registerPlaceExtensionLifecycle, settingsOnlyExports, PLACES_EXTENSION_API_VERSION, type ExtensionSettingsGroup } from "places-shared/obsidian/services";
+import { Utilities, configureRequestLogging } from "places-shared/utils";
+import { apiKeySettingItem, countrySettingItem, settingsPageStatus, styleDropdownItem } from "places-shared/obsidian/ui";
+import { buildImageAlignment } from "places-shared/obsidian/maplibre";
 import { GeoapifyApiService } from "./GeoapifyApiService";
 import { PROVIDER_ICON } from "./provider-icon";
 import { GeoapifyMapBlockProcessor } from "./GeoapifyMapBlockProcessor";
@@ -11,29 +11,14 @@ import { GeoapifyElevationService } from "./GeoapifyElevationService";
 import { GeoapifyRouteOverlayService } from "./GeoapifyRouteOverlayService";
 import { GeoapifySnapService } from "./GeoapifySnapService";
 import "maplibre-gl/dist/maplibre-gl.css";
-import "places-maplibre-base/styles.css";
+import "places-shared/maplibre-styles.css";
+import { GEOAPIFY_STYLES, geoapifyStyleUrl } from "places-geoapify/core";
 
 const DEFAULT_SETTINGS: IPlaceExtensionSettings = {
   defaultStyle: "osm-bright"
 };
 
-const GEOAPIFY_STYLES: Array<{ value: string; name: string }> = [
-  { value: "osm-bright", name: "OSM Bright" },
-  { value: "osm-bright-grey", name: "OSM Bright Grey" },
-  { value: "osm-bright-smooth", name: "OSM Bright Smooth" },
-  { value: "klokantech-basic", name: "Klokantech Basic" },
-  { value: "osm-liberty", name: "OSM Liberty" },
-  { value: "maptiler-3d", name: "MapTiler 3D" },
-  { value: "toner", name: "Toner" },
-  { value: "toner-grey", name: "Toner Grey" },
-  { value: "positron", name: "Positron" },
-  { value: "positron-blue", name: "Positron Blue" },
-  { value: "dark-matter", name: "Dark Matter" },
-  { value: "dark-matter-brown", name: "Dark Matter Brown" },
-];
-
 export default class GeoapifyPlugin extends Plugin implements IPlacePluginExtension {
-
   onload() {
     registerPlaceExtensionLifecycle(this);
   }
@@ -43,7 +28,7 @@ export default class GeoapifyPlugin extends Plugin implements IPlacePluginExtens
     Utilities.applyDefaults(extensionSettings, DEFAULT_SETTINGS);
 
     if (!extensionSettings.apiKey) {
-      return settingsOnlyExports(this.settingsGroup());
+      return settingsOnlyExports(this.settingsGroup(extensionSettings));
     }
 
     const mapBlockProcessor = new GeoapifyMapBlockProcessor(app, extensionSettings, mainSettings.units, mainSettings.developerMode);
@@ -52,9 +37,13 @@ export default class GeoapifyPlugin extends Plugin implements IPlacePluginExtens
     const routeOverlayService = new GeoapifyRouteOverlayService(extensionSettings);
 
     const getStyleUrl = (style?: string): string => {
-      const styleId = style || extensionSettings.defaultStyle;
+      const styleId = style ?? extensionSettings.defaultStyle;
       const apiKey = typeof extensionSettings.apiKey === 'string' ? extensionSettings.apiKey : '';
-      return `https://maps.geoapify.com/v1/styles/${styleId}/style.json?apiKey=${apiKey}`;
+      const url = geoapifyStyleUrl(styleId, apiKey);
+
+      if (!url) throw new Error(`Unknown Geoapify map style "${styleId}". Choose a supported style in the block or in Places settings.`);
+
+      return url;
     };
 
     return {
@@ -80,13 +69,15 @@ export default class GeoapifyPlugin extends Plugin implements IPlacePluginExtens
           snap: new GeoapifySnapService(extensionSettings)
         }
       ],
-      settingsGroup: this.settingsGroup()
+      settingsGroup: this.settingsGroup(extensionSettings)
     };
   }
 
-  private settingsGroup(): ExtensionSettingsGroup {
+  private settingsGroup(settings: IPlaceExtensionSettings): ExtensionSettingsGroup {
     return {
       heading: "Geoapify",
+      ...settingsPageStatus(() => Boolean(settings.apiKey?.trim())),
+      reloadOn: ["apiKey", "defaultStyle"],
       items: [
         apiKeySettingItem("Geoapify"),
         countrySettingItem(),
